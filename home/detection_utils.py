@@ -68,19 +68,28 @@ def process_faces(frame, face_detector, face_encodings, recognized_faces=None):
         for detection in results.detections:
             bboxC = detection.location_data.relative_bounding_box
 
-            # Convert normalized coordinates to pixel coordinates
             x1 = max(0, int(bboxC.xmin * iw))
             y1 = max(0, int(bboxC.ymin * ih))
             x2 = min(iw, x1 + int(bboxC.width * iw))
             y2 = min(ih, y1 + int(bboxC.height * ih))
 
-            # Draw detected face rectangle
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            # Get center of the face box
+            center_x = (x1 + x2) // 2
+            center_y = (y1 + y2) // 2
 
-            # Format for face_recognition: [(top, right, bottom, left)]
+            # Skip detection if not inside any defined area
+            inside_area = False
+            for data in face_encodings.values():
+                x_a, y_a, x_b, y_b = data["area"]
+                if x_a <= center_x <= x_b and y_a <= center_y <= y_b:
+                    inside_area = True
+                    break
+
+            if not inside_area:
+                continue  # Skip this face
+
+            # Proceed as usual
             face_location = [(y1, x2, y2, x1)]
-
-            # Get encoding for the detected face
             face_encodings_detected = face_recognition.face_encodings(rgb_frame, face_location)
 
             if face_encodings_detected:
@@ -94,7 +103,6 @@ def process_faces(frame, face_detector, face_encodings, recognized_faces=None):
                     matched_name = list(face_encodings.keys())[match_index]
                     matched_area = face_encodings[matched_name]["area"]
 
-                    # Check if detected face is inside matched person's area
                     if (matched_area[0] <= x1 <= matched_area[2] and
                         matched_area[1] <= y1 <= matched_area[3]):
                         print(f"✅ Check-in: {matched_name}")
@@ -105,9 +113,11 @@ def process_faces(frame, face_detector, face_encodings, recognized_faces=None):
                         label = f"{matched_name} (Wrong Area)"
                         color = (0, 0, 255)
 
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                     cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
                 else:
                     print("❓ Unknown face detected.")
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                     cv2.putText(frame, "Unknown", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
     return frame
@@ -124,16 +134,19 @@ def process_poses(frame, pose_model, pose_areas):
                       area[1] <= center_y <= area[3]
                       for area in pose_areas)
 
-        if in_area:
-            cls_id = int(box.cls[0])
-            conf = float(box.conf[0])
-            label = f"{results.names[cls_id]} {conf:.2f}"
+        if not in_area:
+            continue  # Skip this pose box if not in area
 
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(frame, label, (x1, y1 - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        cls_id = int(box.cls[0])
+        conf = float(box.conf[0])
+        label = f"{results.names[cls_id]} {conf:.2f}"
+
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(frame, label, (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
     return frame
+
 
 import time  
 
