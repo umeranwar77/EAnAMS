@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Live Stream</title>
+  </head>
+  <body>
+    <h2>Live Camera Feed</h2>
+    <img src="{% url 'video-stream' %}" width="640" height="360" />
+    <br /><br />
+    <a href="{% url 'known_face' %}">Upload Known Face</a>
+  </body>
+</html>
