@@ -62,35 +62,54 @@ def process_faces(frame, face_detector, face_encodings, recognized_faces=None):
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = face_detector.process(rgb_frame)
 
+    ih, iw = frame.shape[:2]
+
     if results.detections:
         for detection in results.detections:
             bboxC = detection.location_data.relative_bounding_box
-            ih, iw = frame.shape[:2]
+
+            # Convert normalized coordinates to pixel coordinates
             x1 = max(0, int(bboxC.xmin * iw))
             y1 = max(0, int(bboxC.ymin * ih))
             x2 = min(iw, x1 + int(bboxC.width * iw))
             y2 = min(ih, y1 + int(bboxC.height * ih))
 
-            detected_area = next((name for name, data in face_encodings.items()
-                                  if (data["area"][0] <= x1 <= data["area"][2] and
-                                      data["area"][1] <= y1 <= data["area"][3])), None)
+            # Draw detected face rectangle
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-            if detected_area:
-                face_location = [(y1, x2, y2, x1)] 
-                face_encodings_detected = face_recognition.face_encodings(rgb_frame, face_location)
-                if face_encodings_detected:
-                    matches = face_recognition.compare_faces(
-                        [data["encoding"] for data in face_encodings.values()],
-                        face_encodings_detected[0]
-                    )
-                    if True in matches:
-                        detected_person = list(face_encodings.keys())[matches.index(True)]
-                        if detected_person == detected_area:
-                            print(f"Check in: {detected_person}")
-                        else:
-                            print(f"Wrong area match: {detected_person}")
+            # Format for face_recognition: [(top, right, bottom, left)]
+            face_location = [(y1, x2, y2, x1)]
+
+            # Get encoding for the detected face
+            face_encodings_detected = face_recognition.face_encodings(rgb_frame, face_location)
+
+            if face_encodings_detected:
+                encoding = face_encodings_detected[0]
+                known_encodings = [data["encoding"] for data in face_encodings.values()]
+                match_results = face_recognition.compare_faces(known_encodings, encoding)
+                face_distances = face_recognition.face_distance(known_encodings, encoding)
+
+                if True in match_results:
+                    match_index = match_results.index(True)
+                    matched_name = list(face_encodings.keys())[match_index]
+                    matched_area = face_encodings[matched_name]["area"]
+
+                    # Check if detected face is inside matched person's area
+                    if (matched_area[0] <= x1 <= matched_area[2] and
+                        matched_area[1] <= y1 <= matched_area[3]):
+                        print(f"✅ Check-in: {matched_name}")
+                        label = f"{matched_name} (OK)"
+                        color = (0, 255, 0)
                     else:
-                        print("Unknown face detected.")
+                        print(f"⚠️ Wrong area: {matched_name}")
+                        label = f"{matched_name} (Wrong Area)"
+                        color = (0, 0, 255)
+
+                    cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                else:
+                    print("❓ Unknown face detected.")
+                    cv2.putText(frame, "Unknown", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
     return frame
 
 def process_poses(frame, pose_model, pose_areas):
@@ -124,7 +143,7 @@ def gen_frames():
     pose_areas = [data["area"] for data in face_encodings.values()]
     recognized_faces = set()
 
-    cap = cv2.VideoCapture(RTSP_URL)
+    cap = cv2.VideoCapture(0)
     frame_interval = 1 / 2 
     last_processed_time = 0
 
