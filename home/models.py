@@ -14,6 +14,34 @@ class AttendanceRecord(models.Model):
     activity_type = models.CharField(max_length=100)
     def __str__(self):
         return f"{self.name} - {self.check_in_time}"
+    
+class Area(models.Model):
+    image = models.ForeignKey("Image", on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    points = models.JSONField()
+
+    def get_bounding_box(self):
+        if not self.points:
+            return None
+        x_coords = [point["x"] for point in self.points]
+        y_coords = [point["y"] for point in self.points]
+        return (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
+
+
+class Image(models.Model):
+    image = models.ImageField(upload_to='captured_images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+class Person(models.Model):
+    name = models.CharField(max_length=100)
+    assigned_area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True)
+    image = models.ImageField(upload_to='known_faces/')
+
+    def area_tuple(self):
+        if self.assigned_area:
+            return self.assigned_area.get_bounding_box()
+        return None
+
 
 
 class KnownFace(models.Model):
@@ -27,3 +55,6 @@ class KnownFace(models.Model):
 
     def area_tuple(self):
         return (self.area_x1, self.area_y1, self.area_x2, self.area_y2)
+
+
+

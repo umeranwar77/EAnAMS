@@ -6,7 +6,7 @@ import mediapipe as mp
 import numpy as np
 from ultralytics import YOLO
 import torch
-from .models import KnownFace
+from .models import KnownFace, Person
 from .models import AttendanceRecord
 from django.core.files.base import ContentFile
 from django.utils.timezone import now
@@ -23,19 +23,34 @@ SKIP_FRAMES = 2
 POSE_AREA_COLOR = (0, 255, 255)
 FACE_AREA_COLOR = (255, 255, 0)
 
+# def load_known_faces():
+#     face_encodings = {}
+#     for face in KnownFace.objects.all():
+#         try:
+#             image = face_recognition.load_image_file(face.image.path)
+#             encodings = face_recognition.face_encodings(image)
+#             if encodings:
+#                 face_encodings[face.name] = {
+#                     "encoding": encodings[0],
+#                     "area": face.area_tuple()  # (x1, y1, x2, y2)
+#                 }
+#         except Exception as e:
+#             print(f"Failed to process {face.name}: {e}")
+#     return face_encodings
 def load_known_faces():
     face_encodings = {}
-    for face in KnownFace.objects.all():
+    for person in Person.objects.all():
         try:
-            image = face_recognition.load_image_file(face.image.path)
+            image = face_recognition.load_image_file(person.image.path)
             encodings = face_recognition.face_encodings(image)
             if encodings:
-                face_encodings[face.name] = {
+                area = person.area_tuple()  # Now returns (x1, y1, x2, y2)
+                face_encodings[person.name] = {
                     "encoding": encodings[0],
-                    "area": face.area_tuple()  # (x1, y1, x2, y2)
+                    "area": area
                 }
         except Exception as e:
-            print(f"Failed to process {face.name}: {e}")
+            print(f"Failed to process {person.name}: {e}")
     return face_encodings
 
 

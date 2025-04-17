@@ -1,0 +1,57 @@
+<h2>Select Keypoints on Image</h2>
+
+<style>
+  #imgContainer {
+    position: relative;
+    display: inline-block;
+  }
+
+  .point {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background-color: red;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+</style>
+
+<div id="imgContainer">
+  <img
+    id="img"
+    src="{{ image.image.url }}"
+    style="max-width: 600px; cursor: crosshair"
+  />
+</div>
+
+<form id="areaForm" method="post" action="{% url 'save_area' %}">
+  {% csrf_token %}
+  <input type="hidden" name="image_id" value="{{ image.id }}" />
+  <input type="hidden" name="points" id="points" />
+  Area Name: <input type="text" name="area_name" required />
+  <button type="submit">Save Area</button>
+</form>
+
+<script>
+  const img = document.getElementById("img");
+  const imgContainer = document.getElementById("imgContainer");
+  const pointsInput = document.getElementById("points");
+  let points = [];
+
+  img.addEventListener("click", function (e) {
+    const rect = img.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+
+    // Save point
+    points.push({ x, y });
+    pointsInput.value = JSON.stringify(points); // Save to hidden input
+
+    // Draw a dot
+    const dot = document.createElement("div");
+    dot.className = "point";
+    dot.style.left = `${x}px`;
+    dot.style.top = `${y}px`;
+    imgContainer.appendChild(dot);
+  });
+</script>
