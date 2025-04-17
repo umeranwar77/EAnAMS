@@ -171,7 +171,7 @@ def gen_frames():
     pose_areas = [data["area"] for data in face_encodings.values()]
     recognized_faces = set()
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(RTSP_URL)
     frame_interval = 1 / 2 
     last_processed_time = 0
 

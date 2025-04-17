@@ -13,4 +13,11 @@ urlpatterns = [
     path('save-area/', views.save_area, name='save_area'),
     path('assign-person/', views.assign_person, name='assign_person'),
     path('upload-image/', views.upload_image, name='upload_image'),
+
+
+
+
+    # path('camera/', views.camera_view, name='camera_view'),
+    # # path('video_feed/', views.video_feed, name='video_feed'),
+    # path('save_capture/', views.save_capture, name='save_capture')
 ]

@@ -1,125 +1,46 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Capture Image</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-      }
-
-      #video-container {
-        background: #fff;
-        padding: 10px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-        text-align: center;
-      }
-
-      video,
-      canvas {
-        width: 640px;
-        height: 480px;
-        border: 2px solid #333;
-        margin-top: 10px;
-      }
-
-      #canvas {
-        display: none;
-      }
-
-      button {
-        margin-top: 10px;
-        padding: 10px 20px;
-        font-size: 16px;
-        cursor: pointer;
-        border: none;
-        border-radius: 5px;
-        background-color: #1976d2;
-        color: white;
-      }
-
-      form {
-        margin-top: 20px;
-      }
-
-      input[type="text"] {
-        margin: 5px;
-        padding: 5px;
-      }
-    </style>
+    <title>Camera Stream</title>
   </head>
   <body>
-    <!-- <div id="video-container">
-      <h2>Live Camera</h2>
-      <video id="camera" autoplay playsinline></video>
-      <canvas id="canvas" width="640" height="480"></canvas>
-      <button onclick="capture()">📸 Capture</button>
-    </div> -->
+    <h2>Live Stream</h2>
+    <img
+      src="{% url 'video_feed' %}"
+      width="640"
+      height="480"
+      id="video-stream"
+    />
 
+    <br /><br />
+    <button onclick="captureImage()">Capture</button>
     <form
+      id="capture-form"
       method="POST"
       enctype="multipart/form-data"
-      action="{% url 'save_image_with_area' %}"
+      action="{% url 'save_capture' %}"
     >
       {% csrf_token %}
       <input type="hidden" name="image_data" id="image_data" />
-      <input type="text" name="name" placeholder="Person Name" required /><br />
-      <input
-        type="text"
-        name="area_name"
-        placeholder="Area Name"
-        required
-      /><br />
-
-      <!-- Hidden area coordinates -->
-      <input type="hidden" name="area_x1" id="area_x1" />
-      <input type="hidden" name="area_y1" id="area_y1" />
-      <input type="hidden" name="area_x2" id="area_x2" />
-      <input type="hidden" name="area_y2" id="area_y2" />
-
-      <button type="submit">💾 Save</button>
+      <br />
+      <img id="captured-image" style="display: none" width="320" />
+      <br />
+      <button type="submit">Save</button>
     </form>
 
     <script>
-      const video = document.getElementById("camera");
-
-      // Access the camera
-      navigator.mediaDevices
-        .getUserMedia({ video: true })
-        .then((stream) => {
-          video.srcObject = stream;
-        })
-        .catch((err) => {
-          alert("Camera access denied or not available.");
-          console.error(err);
-        });
-
-      function capture() {
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
+      function captureImage() {
+        let video = document.getElementById("video-stream");
+        let canvas = document.createElement("canvas");
+        canvas.width = 640;
+        canvas.height = 480;
+        let ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.style.display = "block";
 
-        // Convert to data URL and store in form
-        const dataURL = canvas.toDataURL("image/jpeg");
+        let dataURL = canvas.toDataURL("image/jpeg");
+        document.getElementById("captured-image").src = dataURL;
+        document.getElementById("captured-image").style.display = "block";
         document.getElementById("image_data").value = dataURL;
-
-        // Area selection on click
-        canvas.onclick = function (e) {
-          const rect = canvas.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          document.getElementById("area_x1").value = x;
-          document.getElementById("area_y1").value = y;
-          document.getElementById("area_x2").value = x + 100;
-          document.getElementById("area_y2").value = y + 100;
-          alert(`Selected Area: (${x}, ${y}) to (${x + 100}, ${y + 100})`);
-        };
       }
     </script>
   </body>

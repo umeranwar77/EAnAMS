@@ -101,3 +101,46 @@ def assign_person(request):
     else:
         form = PersonAssignForm()
     return render(request, 'assign_person.html', {'form': form})
+
+
+cap = cv2.VideoCapture(0)
+
+# def gen_frames():
+#     while True:
+#         success, frame = cap.read()
+#         if not success:
+#             break
+#         else:
+#             ret, buffer = cv2.imencode('.jpg', frame)
+#             frame = buffer.tobytes()
+#             yield (b'--frame\r\n'
+#                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+# @gzip.gzip_page
+# def video_feed(request):
+#     return StreamingHttpResponse(gen_frames(), content_type='multipart/x-mixed-replace; boundary=frame')
+
+def camera_view(request):
+    return render(request, 'camera.html')
+
+
+
+
+# save image
+
+import base64
+from django.core.files.base import ContentFile
+from django.views.decorators.csrf import csrf_exempt
+from .models import Image
+
+@csrf_exempt
+def save_capture(request):
+    if request.method == 'POST':
+        data_url = request.POST.get('image_data')
+        format, imgstr = data_url.split(';base64,')
+        ext = format.split('/')[-1]
+        img_data = ContentFile(base64.b64decode(imgstr), name=f"capture.{ext}")
+
+        Image.objects.create(image=img_data)
+        return render(request, 'upload.html')  
+
